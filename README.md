@@ -2,6 +2,8 @@
 
 MAGScoT = MAG Scoring (and refinement) Tool
 
+MAGScoT is pronounced like "Mascot".
+
 MAGScoT is a fast tool for the scoring and refinement of metagenomic bins from different binning tools. A preprint is available via BioRXiv.
 
 In brief, MAGScoT uses GTDBtk rel 207 (v2) marker genes to score completeness and contamination of metagenomic bins, to iteratively select the best metagenome-assembled genomes (MAGs) in a dataset. In addition, MAGScoT can merge overlapping metagenomic bins from multiple binning inputs and add these hybrid bins for scoring and refinement to the set of candidates MAGs.
@@ -35,8 +37,7 @@ Rscript $MAGScoT_folder/MAGScoT.R -i example.contigs_to_bin.tsv --hmm example.hm
 
 ### Run MAGScoT as Docker Container
 
-Alternatively, MAGScoT can be run via the Docker Container.
-
+Alternatively, MAGScoT can be run via the Docker Container. 
 
 ```
 MAGScoT_folder="/path/to/MAGScoT"
