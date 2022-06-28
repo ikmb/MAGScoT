@@ -140,7 +140,7 @@ if(is.null(opt$skip_merge_bins) == F | is.null(opt$score_only) == F | opt$n_iter
 		}, simplify=F)
 		bisco_out = binmatch %>% do.call("rbind",.) %>% distinct_at(.vars=c("bin_a","bin_b"), .keep_all=T) %>% filter(shared_markers >= min_markers) %>% mutate(bin=paste0(paste0("MAGScoT_",it,"_"), seq_along(shared_markers)))
 		contig_to_bin_bisco_it = bisco_out %>%	apply(., 1, function(x) contig_to_bin %>% filter(bin %in% c(x[2], x[3])) %>%
-			mutate(bin=x[6], set=paste0("Bisco_",it)) %>% distinct_at(.vars=c("bin","contig"), .keep_all=T)) %>% do.call("rbind", .) %>% data.frame(row.names=NULL)
+			mutate(bin=x[6], set=paste0("MAGScoT_",it)) %>% distinct_at(.vars=c("bin","contig"), .keep_all=T)) %>% do.call("rbind", .) %>% data.frame(row.names=NULL)
 		contig_to_bin_bisco = rbind(contig_to_bin_bisco, contig_to_bin_bisco_it)
 		if(it==1){bisco_out_all = bisco_out}else{bisco_out_all = rbind(bisco_out_all, bisco_out)}
 		if(nrow(contig_to_bin_bisco_it)==0){cat("Exiting bin merging, no (more) overlaps found\n"); break}
