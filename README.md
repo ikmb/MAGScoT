@@ -56,7 +56,7 @@ MAGScoT_folder="/path/to/MAGScoT"
 ### Fast parallel annotation with prodigal
 cd $MAGScoT_folder/example
 mkdir -p tmp_workfolder
-cat example.contigs.fasta | ~/Isilon/software/bin/parallel -j 8 --block 999k --recstart '>' --pipe prodigal -p meta -a tmp_workfolder/example.{#}.faa -d tmp_workfolder/example.{#}.ffn -o tmpfile
+cat example.contigs.fasta | parallel -j 8 --block 999k --recstart '>' --pipe prodigal -p meta -a tmp_workfolder/example.{#}.faa -d tmp_workfolder/example.{#}.ffn -o tmpfile
 cat tmp_workfolder/example.*.faa > example.prodigal.faa
 cat tmp_workfolder/example.*.ffn > example.prodigal.ffn
 rm -r tmp_workfolder tmpfile
