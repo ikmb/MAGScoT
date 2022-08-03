@@ -53,13 +53,17 @@ docker run -v `pwd`:`pwd` ikmb/MAGScoT:latest -i $MAGScoT_folder/example/example
 ```
 MAGScoT_folder="/path/to/MAGScoT"
 
-### Fast parallel annotation with prodigal
 cd $MAGScoT_folder/example
-mkdir -p tmp_workfolder
-zcat example.contigs.fasta.gz | parallel -j 8 --block 999k --recstart '>' --pipe prodigal -p meta -a tmp_workfolder/example.{#}.faa -d tmp_workfolder/example.{#}.ffn -o tmpfile
-cat tmp_workfolder/example.*.faa > example.prodigal.faa
-cat tmp_workfolder/example.*.ffn > example.prodigal.ffn
-rm -r tmp_workfolder tmpfile
+
+### ORF detection with prodigal
+zcat example.contigs.fasta.gz | prodigal -p meta -a example.prodigal.faa -d example.prodigal.ffn -o tmpfile
+
+### ALTERNATIVE: Fast parallel ORF detection with prodigal
+# mkdir -p tmp_workfolder
+# zcat example.contigs.fasta.gz | parallel -j 8 --block 999k --recstart '>' --pipe prodigal -p meta -a tmp_workfolder/example.{#}.faa -d # tmp_workfolder/example.{#}.ffn -o tmpfile
+# cat tmp_workfolder/example.*.faa > example.prodigal.faa
+# cat tmp_workfolder/example.*.ffn > example.prodigal.ffn
+# rm -r tmp_workfolder tmpfile
 
 ### annotation of protein sequences using HMMer and GTDBtk r207 marker genes
 hmmsearch -o example.hmm.tigr.out --tblout example.hmm.tigr.hit.out --noali --notextw --cut_nc --cpu 8 $MAGScoT_folder/hmm/tigrfam.hmm example.prodigal.faa
