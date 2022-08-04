@@ -111,7 +111,7 @@ zcat example.contigs.fasta.gz | prodigal -p meta -a example.prodigal.faa -d exam
 
 ### ALTERNATIVE: Fast parallel ORF detection with prodigal
 # mkdir -p tmp_workfolder
-# zcat example.contigs.fasta.gz | parallel -j 8 --block 999k --recstart '>' --pipe prodigal -p meta -a tmp_workfolder/example.{#}.faa -d # tmp_workfolder/example.{#}.ffn -o tmpfile
+# zcat example.contigs.fasta.gz | parallel -j 8 --block 999k --recstart '>' --pipe prodigal -p meta -a tmp_workfolder/example.{#}.faa -d tmp_workfolder/example.{#}.ffn -o tmpfile
 # cat tmp_workfolder/example.*.faa > example.prodigal.faa
 # cat tmp_workfolder/example.*.ffn > example.prodigal.ffn
 # rm -r tmp_workfolder tmpfile
