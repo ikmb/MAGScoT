@@ -12,6 +12,57 @@ MAGScoT outperforms existing tools on levels of computation time and resources, 
 
 ![](static/summary_plot.png)
 
+## Options
+
+```
+$ Rscript MAGScoT.R 
+Usage: MAGScoT.R [options]
+
+
+Options:
+	-i CHARACTER, --input=CHARACTER
+		Tab-separated input file with three columns: bin, contig, set; no header!
+
+	--hmm=CHARACTER
+		Tab-separated input file with marker mapping; three columns: gene id, marker, e-value. 
+ Gene IDs must represent contig IDs after removal of _[0-9] at the end of the name (prodigal default)
+
+	-p CHARACTER, --profile=CHARACTER
+		Profile used for scoring, all derived from GTDB release 207. default[=bac120+ar53], ar53, bac120. [default]
+
+	-o CHARACTER, --out=CHARACTER
+		output file name base [default=MAGScoT]
+
+	-a SCORE_A, --score_a=SCORE_A
+		Scoring parameter a [default=1]
+
+	-b SCORE_B, --score_b=SCORE_B
+		Scoring parameter b [default=0.5]
+
+	-c SCORE_C, --score_c=SCORE_C
+		Scoring parameter c [default=0.5]
+
+	-t THRESHOLD, --threshold=THRESHOLD
+		Scoring minimum completeness threshold [default=0.5]
+
+	--score_only
+		Only do scoring, no refinement [false]
+
+	--skip_merge_bins
+		Skip bin merging [false]
+
+	-m MIN_MARKERS, --min_markers=MIN_MARKERS
+		Minimum number of unique markers in bins to be considered as seed for bin merging [default=25]
+
+	-s MIN_SHARING, --min_sharing=MIN_SHARING
+		Minimum percentage of shared markers for bin sharing. [default=0.8]
+
+	-n N_ITERATIONS, --n_iterations=N_ITERATIONS
+		Number of merging iterations to perform. [default=2]
+
+	-h, --help
+		Show this help message and exit
+```
 
 ## Usage
 
