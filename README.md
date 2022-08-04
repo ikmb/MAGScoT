@@ -117,8 +117,8 @@ zcat example.contigs.fasta.gz | prodigal -p meta -a example.prodigal.faa -d exam
 # rm -r tmp_workfolder tmpfile
 
 ### annotation of protein sequences using HMMer and GTDBtk r207 marker genes
-hmmsearch -o example.hmm.tigr.out --tblout example.hmm.tigr.hit.out --noali --notextw --cut_nc --cpu 8 $MAGScoT_folder/hmm/tigrfam.hmm example.prodigal.faa
-hmmsearch -o example.hmm.pfam.out --tblout example.hmm.pfam.hit.out --noali --notextw --cut_nc --cpu 8 $MAGScoT_folder/hmm/Pfam-A.hmm example.prodigal.faa
+hmmsearch -o example.hmm.tigr.out --tblout example.hmm.tigr.hit.out --noali --notextw --cut_nc --cpu 8 $MAGScoT_folder/hmm/gtdbtk_rel207_tigrfam.hmm example.prodigal.faa
+hmmsearch -o example.hmm.pfam.out --tblout example.hmm.pfam.hit.out --noali --notextw --cut_nc --cpu 8 $MAGScoT_folder/hmm/gtdbtk_rel207_Pfam-A.hmm example.prodigal.faa
 
 cat example.hmm.tigr.hit.out | grep -v "^#" | awk '{print $1"\t"$3"\t"$5}' > example.tigr
 cat example.hmm.pfam.hit.out | grep -v "^#" | awk '{print $1"\t"$4"\t"$5}' > example.pfam
