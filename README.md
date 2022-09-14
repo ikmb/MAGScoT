@@ -93,7 +93,7 @@ Alternatively, MAGScoT can be run via the Docker Container.
 ```
 MAGScoT_folder="/path/to/MAGScoT"
 
-docker run -v `pwd`:`pwd` ikmb/MAGScoT:latest -i $MAGScoT_folder/example/example.contig_to_bin.tsv --hmm $MAGScoT_folder/example/example.hmm
+docker run -v `pwd`:`pwd` ikmb/magscot:latest -i $MAGScoT_folder/example/example.contig_to_bin.tsv --hmm $MAGScoT_folder/example/example.hmm
 
 ```
 
