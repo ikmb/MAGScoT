@@ -127,6 +127,7 @@ if(is.null(opt$skip_merge_bins) == F | is.null(opt$score_only) == F | opt$n_iter
 		gene_to_bin = left_join(contig_to_bin_bisco_it %>% filter(contig %in% gene_to_contig$contig), gene_to_contig, by="contig")
 		merge_cand = gene_to_bin %>% distinct_at(.vars=c("bin","gene"), .keep_all=T) %>% group_by(bin) %>% summarise(n_markers = n()) %>%
 			left_join( gene_to_bin %>% group_by(bin) %>% summarise(n_markers_tot = n()), by="bin") %>% filter(n_markers >= min_markers, n_markers_tot <= 150) %>% pull(bin) %>% unique()
+		if(length(merge_cand)==0) break
 		binmatch=sapply(seq_along(merge_cand), function(thisbin_id){
 			cat("Processing candidate bin ",thisbin_id, " of ", length(merge_cand),"\r")
 			thisbin = merge_cand[thisbin_id]
