@@ -4,16 +4,18 @@ library("optparse")
 
 option_list = list(
 		make_option(c("-i", "--input"), type="character", default=NULL,
-							help="Tab-separated input file with three columns: bin, contig, set; no header!", metavar="character"),
+			help="Tab-separated input file with three columns: bin, contig, set; no header!", metavar="character"),
 		make_option(c("--hmm"), type="character", default=NULL,
-							help="Tab-separated input file with marker mapping; three columns: gene id, marker, e-value. \n Gene IDs must represent contig IDs after removal of _[0-9] at the end of the name (prodigal default)", metavar="character"),
-  	make_option(c("-p", "--profile"), type="character", default="default",
-              help="Profile used for scoring, all derived from GTDB release 207. default[=bac120+ar53], ar53, bac120. [default]", metavar="character"),
-    make_option(c("-o", "--out"), type="character", default="MAGScoT",
-              help="output file name base [default=%default]", metavar="character"),
+			help="Tab-separated input file with marker mapping; three columns: gene id, marker, e-value. \n Gene IDs must represent contig IDs after removal of _[0-9] at the end of the name (prodigal default)", metavar="character"),
+  		make_option(c("-p", "--profile"), type="character", default="default",
+            help="Profile used for scoring, all derived from GTDB release 207. default[=bac120+ar53], ar53, bac120. [default]", metavar="character"),
+    	make_option(c("-o", "--out"), type="character", default="MAGScoT",
+            help="output file name base [default=%default]", metavar="character"),
+		make_option(c("--bin_separator"), type="character", default="cleanbin", help="Separator for refined output bin names [default=%default]"),
 		make_option(c("-a", "--score_a"), type="double", default=1, help="Scoring parameter a [default=%default]"),
 		make_option(c("-b", "--score_b"), type="double", default=0.5, help="Scoring parameter b [default=%default]"),
 		make_option(c("-c", "--score_c"), type="double", default=0.5, help="Scoring parameter c [default=%default]"),
+        make_option(c("--max_cont"), type="double", default=1, help="Maximum contamination; MAGs with values higher than this threshold are not considered [default=%default]"),
 		make_option(c("-t", "--threshold"), type="double", default=0.5, help="Scoring minimum completeness threshold [default=%default]"),
 		make_option(c("--score_only"), action="store_true", dest="score_only", help="Only do scoring, no refinement [false]"),
 		make_option(c("--skip_merge_bins"), action="store_true", dest="skip_merge_bins", help="Skip bin merging [false]"),
@@ -36,6 +38,7 @@ cat("Loading packages...\n")
 suppressMessages(library(dplyr))
 suppressMessages(library(readr))
 suppressMessages(library(funr))
+suppressMessages(library(digest))
 ### READ IN BINNiNG INFO
 ### FORMAT: 3 columns => bin, contig, set
 
@@ -54,6 +57,8 @@ if(length(unique(contig_to_bin$bin)) > length(unique(contig_to_bin$contig))){
 	cat("Please check your input files and run MAGScoT again.\nAborting execution!\n")
 	quit(save="no")
 }
+
+contig_to_bin_unique = contig_to_bin %>% dplyr::select(contig) %>% distinct %>% arrange(contig) %>% mutate(contig_idx = seq_along(contig))
 
 num_binsets = length(unique(contig_to_bin$set))
 
@@ -114,20 +119,33 @@ gene_to_contig=hmm %>% arrange(X3) %>%
 	dplyr::select(contig, gene) %>%
 	distinct()
 
-####
+## calculate hashes for each bin based on their contigs 
+binhashes = contig_to_bin %>% left_join(contig_to_bin_unique) %>% group_by(bin) %>% 
+	arrange(bin,contig) %>% summarise(xx=paste0(contig_idx, collapse="")) %>% 
+	group_by(bin) %>% mutate(hash=digest::digest(xx))
+
+
+#### Bin Mergeing Routine
+### Bins from distinct binning tools are merged if they have sufficient overlap
+### these newly created bins are added to the dataset if they are distinct from the original bins
+
 if(is.null(opt$skip_merge_bins) == F | is.null(opt$score_only) == F | opt$n_iter == 0){
 	cat("Skipping bin merging...\n")
 }else{
 	for(it in 1:opt$n_iter){
-		cat("Bisco iteration: ", it, "\n")
+		cat("Bin-Merging iteration: ", it, "\n")
 		if(it==1){
 			contig_to_bin_bisco_it = contig_to_bin
 			contig_to_bin_bisco = contig_to_bin
 		}
-		gene_to_bin = left_join(contig_to_bin_bisco_it %>% filter(contig %in% gene_to_contig$contig), gene_to_contig, by="contig")
+		gene_to_bin = left_join(contig_to_bin_bisco_it %>% filter(contig %in% gene_to_contig$contig, bin %in% binhashes$bin), gene_to_contig, by="contig")
+		
+		## subset to candidates meeting the inclusion criteria: n_markers >= min_markers and n_markers <= 150
 		merge_cand = gene_to_bin %>% distinct_at(.vars=c("bin","gene"), .keep_all=T) %>% group_by(bin) %>% summarise(n_markers = n()) %>%
 			left_join( gene_to_bin %>% group_by(bin) %>% summarise(n_markers_tot = n()), by="bin") %>% filter(n_markers >= min_markers, n_markers_tot <= 150) %>% pull(bin) %>% unique()
 		if(length(merge_cand)==0) break
+		
+		## comparing the contigs carrying marker genes of all candidate bins
 		binmatch=sapply(seq_along(merge_cand), function(thisbin_id){
 			cat("Processing candidate bin ",thisbin_id, " of ", length(merge_cand),"\r")
 			thisbin = merge_cand[thisbin_id]
@@ -139,10 +157,24 @@ if(is.null(opt$skip_merge_bins) == F | is.null(opt$score_only) == F | opt$n_iter
 				mutate(shared_markers_rel = shared_markers/length(unique(thisbin_genes$gene))) %>% filter(bin != thisbin, !bin %in% thisbin_blacklist, shared_markers_rel >= min_sharing) %>%
 				mutate(seed=thisbin, bin_a=ifelse(seed>bin, seed, bin), bin_b=ifelse(seed>bin, bin, seed)) %>% select(seed, bin_a, bin_b, shared_markers, shared_markers_rel))
 		}, simplify=F)
+
+		## get contig information for merged bins and calculate their hashes
 		bisco_out = binmatch %>% do.call("rbind",.) %>% distinct_at(.vars=c("bin_a","bin_b"), .keep_all=T) %>% filter(shared_markers >= min_markers) %>% mutate(bin=paste0(paste0("MAGScoT_",it,"_"), seq_along(shared_markers)))
 		contig_to_bin_bisco_it = bisco_out %>%	apply(., 1, function(x) contig_to_bin %>% filter(bin %in% c(x[2], x[3])) %>%
 			mutate(bin=x[6], set=paste0("MAGScoT_",it)) %>% distinct_at(.vars=c("bin","contig"), .keep_all=T)) %>% do.call("rbind", .) %>% data.frame(row.names=NULL)
-		contig_to_bin_bisco = rbind(contig_to_bin_bisco, contig_to_bin_bisco_it)
+		binhashes_bisco = contig_to_bin_bisco_it %>% left_join(contig_to_bin_unique, by="contig") %>% group_by(bin) %>% 
+			arrange(bin,contig) %>% summarise(xx=paste0(contig_idx, collapse="")) %>% 
+			group_by(bin) %>% mutate(hash=digest::digest(xx))
+
+		## merge original bins and merged bins that are distinct from the original bins based on their hashes
+		contig_to_bin_bisco = rbind(
+							contig_to_bin_bisco, 
+							contig_to_bin_bisco_it %>% filter(bin %in% (binhashes_bisco %>% filter(!hash %in% binhashes$hash) %>% pull(bin))))
+		
+		## re-calculate bin hashes for the new set of bins
+		binhashes = contig_to_bin_bisco %>% left_join(contig_to_bin_unique, by="contig") %>% group_by(bin) %>% 
+			arrange(bin,contig) %>% summarise(xx=paste0(contig_idx, collapse="")) %>% 
+			group_by(bin) %>% mutate(hash=digest::digest(xx))
 		if(it==1){bisco_out_all = bisco_out}else{bisco_out_all = rbind(bisco_out_all, bisco_out)}
 		if(nrow(contig_to_bin_bisco_it)==0){cat("Exiting bin merging, no (more) overlaps found\n"); break}
 		cat("\n")
@@ -150,9 +182,11 @@ if(is.null(opt$skip_merge_bins) == F | is.null(opt$score_only) == F | opt$n_iter
 	contig_to_bin = contig_to_bin_bisco
 }
 
-####
+#### Bin scorin and refinement
+
 contig_to_bin.remain<-contig_to_bin
 contig_to_bin.out<-contig_to_bin[0,]
+mag_exclude = c()
 
 ### Initial values
 i=1
@@ -169,62 +203,58 @@ cat("Extracting SCG information for bins...\n")
 if(length(recalc) > 0){
 	gene_to_bin = left_join(contig_to_bin.remain %>% filter(contig %in% gene_to_contig$contig), gene_to_contig, by="contig")
 	if(exists("zz")){
-		zz = zz %>% filter(bin %in% scoreframe$bin, !bin %in% recalc)
-		zz = rbind(zz, gene_to_bin %>% filter(bin %in% recalc) %>% select(bin, gene) %>% group_by(bin,gene) %>% summarize(count=n(), .groups="drop"))
+		zz = zz %>% filter(bin %in% scoreframe$bin, !bin %in% recalc, !bin %in% mag_exclude)
+		zz = rbind(zz, gene_to_bin %>% filter(bin %in% recalc, !bin %in% mag_exclude) %>% select(bin, gene) %>% group_by(bin,gene) %>% summarize(count=n(), .groups="drop") %>% left_join(markers, by=c("gene"="marker")))
 	}else{
-		zz=gene_to_bin %>% select(bin, gene) %>% group_by(bin,gene) %>% summarize(count=n(), .groups="drop")
+		zz=gene_to_bin %>% select(bin, gene) %>% group_by(bin,gene) %>% summarize(count=n(), .groups="drop") %>% left_join(markers, by=c("gene"="marker"))
 	}
 
 } else {
-zz = zz %>% filter(bin %in% scoreframe$bin)
+zz = zz %>% filter(bin %in% scoreframe$bin) 
 }
 
-### stat calculation for marker sets; also here a more flexible approch would be great, e.g. iterating through a set of markers
-df_list = sapply(unique(markers$set), function(this_set){
-	SET_MARKERS = markers %>% filter(set == this_set) %>% pull(marker)
-	zz %>% filter(gene %in% SET_MARKERS) %>%
-	group_by(bin) %>% summarize(uniqueSCGs = n(), multipleSCGs = sum(count>1), sumSCGs = sum(count)) %>%
-	mutate(Completeness = uniqueSCGs / length(SET_MARKERS), additionalSCGs = sumSCGs - uniqueSCGs - multipleSCGs, Contamination = b*(multipleSCGs / uniqueSCGs) + c*(additionalSCGs/length(SET_MARKERS)), score = a*Completeness - Contamination)}, simplify=F)
 
-if(i==1){for(set in names(df_list)){write.table(df_list[set], paste0(id,".",set,".out"), sep="\t", row.names=F)}}
+df_list = zz %>% group_by(bin, set) %>% summarize(uniqueSCGs = n(), multipleSCGs = sum(count>1), sumSCGs = sum(count)) %>%
+	left_join(markers %>% group_by(set) %>% summarise(n_markers=n())) %>%
+	left_join(contig_to_bin.remain %>% group_by(bin) %>% summarise(n_contigs=n())) %>%
+	mutate(
+		Completeness = uniqueSCGs / n_markers, 
+		additionalSCGs = sumSCGs - uniqueSCGs - multipleSCGs, 
+		Contamination = multipleSCGs / uniqueSCGs,
+		MultiContam = additionalSCGs / n_markers,
+		Contamination_Score = b*Contamination + c*MultiContam, 
+		score = a*Completeness - Contamination_Score) %>% 
+		ungroup()
+
+
+scoreframe = df_list %>% arrange(-score, n_contigs, grepl("MAGScoT",bin)) %>% 
+	filter(!duplicated(bin)) %>% 
+	left_join(contig_to_bin %>% dplyr::select(bin,bintool=set) %>% distinct, by="bin")
 
 if(i==1){
-	scoreframe = data.frame(bin=unique(contig_to_bin$bin), stringsAsFactors=F)
-}else{
-	scoreframe = data.frame(bin=unique(zz$bin), stringsAsFactors=F)
-}
-for(set in names(df_list)){
-	scoreframe = scoreframe %>% left_join(df_list[[set]] %>% rename_with(~paste0(colnames(df_list[[set]])[-1],".", set), all_of(colnames(df_list[[set]])[-1])), by="bin")
-	scoreframe[is.na(scoreframe)] = 0
-}
-
-scoreframe$max = scoreframe %>% select(contains("score.")) %>% apply(., 1, max, na.rm=T)
-scoreframe$max_complete = scoreframe %>% select(contains("Completeness.")) %>% apply(., 1, max, na.rm=T)
-
-scoreframe = scoreframe %>% arrange(-max, set) %>% left_join(contig_to_bin %>% dplyr::select(bin,set) %>% distinct, by="bin")
-
-if(i==1){
-	write.table(scoreframe, paste0(id,".scores.out"), sep="\t", row.names=F)
+	write_tsv(scoreframe, paste0(id,".scores.out"))
 	cat("Scores for all initial bins written to:" , paste0(id,".scores.out"), "\n")
 	if(!is.null(opt$score_only)){
 		quit(save="no")
 	}
 }
 
-if(nrow(scoreframe)==0 | scoreframe[1,"max"] < cutoff){
+
+if(nrow(scoreframe)==0 | scoreframe[1,"score"] < cutoff){
 cat("No bin surpasses the cutoff of:" , cutoff, "\n")
 break
 }
 
 ### bins where neither bac not arc markers are above the cutoff (50% by DAS tool default) are removed as they will never reach the scoring cutoff
-scoreframe = scoreframe %>% filter(max_complete >= cutoff)
+mag_exclude = c(mag_exclude, scoreframe %>% filter(Completeness < cutoff) %>% pull(bin))
+scoreframe = scoreframe %>% filter(!bin %in% mag_exclude, Contamination <= opt$max_cont)
 
 ### as long as consecutive best hits are from the same set, no high-scoring bins are affected by definition (each contig only occurs once per set)
 ### this iteration can mean big speedup
 
-winnerset=scoreframe$set[1]
+winnerset=scoreframe$bintool[1]
 
-while(nrow(scoreframe)>0 & scoreframe$set[1] == winnerset){
+while(nrow(scoreframe)>0 & scoreframe$bintool[1] == winnerset){
 winnerbin = scoreframe$bin[1]
 
 if(exists("scoreframe.out")==F){scoreframe.out<-head(scoreframe, 1)}else{scoreframe.out<-rbind(scoreframe.out,head(scoreframe,1))}
@@ -240,7 +270,7 @@ if(substr(winnerset, 1, 7)=="MAGScoT") break
 }
 
 ### assess which bins were affected by the winning bin(s); store these for re-scoring in the next iteration
-recalc = contig_to_bin.remain %>% filter(contig %in% contig_to_bin.out$contig) %>% pull(bin)
+recalc = contig_to_bin.remain %>% filter(contig %in% contig_to_bin.out$contig) %>% pull(bin) %>% unique
 
 ### remove bins below treshold (already removed in df); remove contigs which have been assigned to a refined bin
 contig_to_bin.remain <- contig_to_bin.remain %>% filter(bin %in% scoreframe$bin, !contig %in% contig_to_bin.out$contig)
@@ -250,8 +280,8 @@ i=i+1
 
 if(exists("scoreframe.out")){
 ### rename refined bins
-	rownames(scoreframe.out)<-paste0(id,"_cleanbin_",formatC(seq_along(scoreframe.out$bin), width = 6, format = "d", flag = "0"))
-	contig_to_bin.out$binnew<-rownames(scoreframe.out)[match(contig_to_bin.out$bin, scoreframe.out$bin)]
+	scoreframe.out = scoreframe.out %>% mutate(refined_id = paste0(id,"_",opt$bin_separator,"_",formatC(seq_along(bin), width = 6, format = "d", flag = "0")))
+	contig_to_bin.out$binnew<-scoreframe.out$refined_id[match(contig_to_bin.out$bin, scoreframe.out$bin)]
 
 ###
 	cat("Refinement lead to a total of", nrow(scoreframe.out)," bins with a score >=", cutoff,"\n")
@@ -261,8 +291,8 @@ if(exists("scoreframe.out")){
 	cat("Refinement stats are written to:", stats_outfile,"\n")
 	cat("Contig-to-refined-bin mapping is written to:", binning_outfile, "\n")
 
-	write.table(scoreframe.out,stats_outfile,sep="\t",quote=F)
-	write.table(contig_to_bin.out %>% dplyr::select(binnew,contig),binning_outfile,sep="\t",quote=F, row.names=F)
+	write_tsv(scoreframe.out,stats_outfile)
+	write_tsv(contig_to_bin.out %>% dplyr::select(binnew,contig),binning_outfile)
 } else {
 	cat("No bins with score >=", cutoff, "were found in the dataset.\n")
 }
