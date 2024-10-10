@@ -10,6 +10,7 @@ dependencies:
   - r-dplyr 
   - r-readr 
   - r-funr 
+  - r-digest
   - hmmer 
   - prodigal 
   - parallel

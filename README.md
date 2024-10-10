@@ -4,7 +4,7 @@ MAGScoT = MAG Scoring (and refinement) Tool
 
 MAGScoT is pronounced like "Mascot".
 
-MAGScoT is a fast tool for the scoring and refinement of metagenomic bins from different binning tools. The MAGScoT article has been published in [Bionformatics](https://doi.org/10.1093/bioinformatics/btac694).
+MAGScoT is a fast tool for the scoring and refinement of metagenomic bins from different binning tools. A preprint is available via [BioRXiv](https://www.biorxiv.org/content/10.1101/2022.05.17.492251v1).
 
 In brief, MAGScoT uses GTDBtk rel 207 (v2) marker genes to score completeness and contamination of metagenomic bins, to iteratively select the best metagenome-assembled genomes (MAGs) in a dataset. In addition, MAGScoT can merge overlapping metagenomic bins from multiple binning inputs and add these hybrid bins for scoring and refinement to the set of candidates MAGs.
 
@@ -33,6 +33,9 @@ Options:
 	-o CHARACTER, --out=CHARACTER
 		output file name base [default=MAGScoT]
 
+	--bin_separator=BIN_SEPARATOR
+		Separator for refined output bin names [default=cleanbin]
+
 	-a SCORE_A, --score_a=SCORE_A
 		Scoring parameter a [default=1]
 
@@ -41,6 +44,9 @@ Options:
 
 	-c SCORE_C, --score_c=SCORE_C
 		Scoring parameter c [default=0.5]
+
+	--max_cont=MAX_CONT
+		Maximum contamination; MAGs with values higher than this threshold are not considered [default=1]
 
 	-t THRESHOLD, --threshold=THRESHOLD
 		Scoring minimum completeness threshold [default=0.5]
@@ -75,7 +81,7 @@ conda create -n MAGScoT_env
 conda activate MAGScoT_env
 
 conda install mamba
-mamba install -c conda-forge -c bioconda -c r r-base r-optparse r-dplyr r-readr r-funr hmmer prodigal parallel
+mamba install -c conda-forge -c bioconda -c r r-base r-optparse r-dplyr r-readr r-funr r-digest hmmer prodigal parallel
 
 git clone https://github.com/ikmb/MAGScoT
 
@@ -153,11 +159,8 @@ E.g:		`metabat_bin_01<tab>contig_20<tab>metabat`
 Rscript $MAGScoT_folder/MAGScoT.R -i example.contigs_to_bin.tsv --hmm example.hmm
 ```
 
-Final contig to bin file for all algorithms
+Running the MAGScoT algorithm for bin merging and refinement
 
-Format:	`BIN<tab>CONTIG<tab>BINNER`
-
-E.g:		`metabat_bin_01<tab>contig_20<tab>metabat`
 
 # Funding
 
