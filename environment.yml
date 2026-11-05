@@ -1,17 +1,10 @@
-name: magscot_env
+name: magscot
 channels:
   - conda-forge
   - bioconda
-  - r
-  - defaults
 dependencies:
-  - r-base 
+  - r-base>=4.0
+  - r-data.table
   - r-optparse
-  - r-dplyr 
-  - r-readr 
-  - r-funr 
-  - r-digest
-  - hmmer 
-  - prodigal 
-  - parallel
-  - gawk
+  - prodigal
+  - hmmer

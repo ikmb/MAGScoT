@@ -1,2 +1,6 @@
-example/*
-static/*
+.git
+.github
+example
+static
+tests
+MAGScoT.py

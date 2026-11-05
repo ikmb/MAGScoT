@@ -18,7 +18,7 @@ jobs:
       DOCKERHUB_PASS: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
       - name: Check out pipeline code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Build new docker image
         run: docker build --no-cache . -t ikmb/magscot:latest
