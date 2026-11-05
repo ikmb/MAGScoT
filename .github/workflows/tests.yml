@@ -1,0 +1,35 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install HMMER
+        run: sudo apt-get update && sudo apt-get install -y hmmer
+
+      - name: Install R packages
+        run: Rscript -e 'install.packages(c("data.table", "optparse", "testthat"))'
+
+      - name: Unit and regression tests
+        run: Rscript -e 'testthat::test_dir("tests/testthat", stop_on_failure = TRUE)'
+
+      - name: Command-line smoke test
+        working-directory: example
+        run: |
+          Rscript ../MAGScoT.R -i example.contigs_to_bin.tsv --hmm example.hmm \
+            -o smoke --contigs example.contigs.fasta.gz
+          test -s smoke.refined.contig_to_bin.out
+          test "$(ls smoke_bins/*.fasta | wc -l)" -gt 0
+          Rscript ../MAGScoT.R -i example.contigs_to_bin.tsv --proteins example.prodigal.faa.gz \
+            -o smoke_prot
+          cmp <(cut -f2 smoke.refined.contig_to_bin.out | sort) <(cut -f2 smoke_prot.refined.contig_to_bin.out | sort)
