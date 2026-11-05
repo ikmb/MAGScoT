@@ -9,6 +9,8 @@ Commands:
   annotate  Find GTDB r207 marker genes (prodigal + hmmsearch) without refining
   extract   Write FASTA files for refined bins
 
+Recommended: --preset metawrap --max_contamination 0.05
+
 Run 'MAGScoT.R <command> --help' for the options of each command."
 
 refine_options <- function() list(
@@ -27,7 +29,7 @@ refine_options <- function() list(
   optparse::make_option("--bin_separator", type = "character", default = "cleanbin",
     help = "Infix for refined bin names: <prefix>_<infix>_000001 [default: %default]"),
   optparse::make_option("--preset", type = "character", default = "dastool",
-    help = "Scoring weight preset: dastool (a=1, b=0.5, c=0.5) or metawrap (a=1, b=5, c=0.5) [default: %default]"),
+    help = "Scoring weight preset: dastool (a=1, b=0.5, c=0.5) or metawrap (a=1, b=5, c=0.5); recommended: metawrap [default: %default]"),
   optparse::make_option(c("-a", "--score_a"), type = "double",
     help = "Scoring weight a (completeness); overrides the preset"),
   optparse::make_option(c("-b", "--score_b"), type = "double",
@@ -37,7 +39,7 @@ refine_options <- function() list(
   optparse::make_option("--max_contamination", type = "double", default = 1,
     help = paste("Maximum contamination of bins considered for refinement, as a fraction",
                  "(0.1 = 10%) of the Contamination column: markers present in more than one",
-                 "copy / unique markers. Bins above it are discarded. 1 = no filter [default: %default]")),
+                 "copy / unique markers. Bins above it are discarded. 1 = no filter; recommended: 0.05 [default: %default]")),
   optparse::make_option("--max_cont", type = "double", dest = "max_cont_deprecated",
     help = "Deprecated alias of --max_contamination"),
   optparse::make_option(c("-t", "--threshold"), type = "double", default = 0.5,
