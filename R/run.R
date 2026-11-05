@@ -24,7 +24,10 @@
 ## @param score_a,score_b,score_c Scoring weights for completeness,
 ##   contamination and surplus marker copies; override the preset if given.
 ## @param threshold Minimum score (and completeness) of refined bins.
-## @param max_cont Maximum contamination of bins considered for refinement.
+## @param max_contamination Maximum contamination of bins considered for
+##   refinement, as a fraction (0.1 = 10%) of MAGScoT's `Contamination` column
+##   (markers present in more than one copy / unique markers). The default 1
+##   applies no filter.
 ## @param score_only Only score the input bins; no merging or refinement.
 ## @param skip_merge_bins Skip bin merging.
 ## @param min_markers Minimum number of unique markers of a seed bin, and of
@@ -44,7 +47,7 @@ magscot_refine <- function(input, hmm = NULL, out = "MAGScoT", profile = "defaul
                            bin_separator = "cleanbin",
                            preset = "dastool",
                            score_a = NULL, score_b = NULL, score_c = NULL,
-                           threshold = 0.5, max_cont = 1,
+                           threshold = 0.5, max_contamination = 1,
                            score_only = FALSE, skip_merge_bins = FALSE,
                            min_markers = 25, min_sharing = 0.8, n_iterations = 2,
                            max_marker_hits = 150,
@@ -118,7 +121,7 @@ magscot_refine <- function(input, hmm = NULL, out = "MAGScoT", profile = "defaul
 
   res <- refine_bins(membership, bins, contig_markers, markers,
                      a = w[["a"]], b = w[["b"]], c = w[["c"]],
-                     cutoff = threshold, max_cont = max_cont,
+                     cutoff = threshold, max_contamination = max_contamination,
                      score_only = score_only)
 
   scores_file <- paste0(out, ".scores.out")

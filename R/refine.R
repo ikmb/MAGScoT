@@ -13,7 +13,7 @@
 ## @param bins data.table(bin_id, bin, bintool, is_merged)
 ## @return list(initial_scores, selected, assignments)
 refine_bins <- function(membership, bins, contig_markers, markers,
-                        a = 1, b = 0.5, c = 0.5, cutoff = 0.5, max_cont = 1,
+                        a = 1, b = 0.5, c = 0.5, cutoff = 0.5, max_contamination = 1,
                         score_only = FALSE) {
   remain <- membership
   scores <- NULL
@@ -42,8 +42,8 @@ refine_bins <- function(membership, bins, contig_markers, markers,
     if (!nrow(ranked) || ranked$score[1] < cutoff) break
 
     ## bins below the completeness cutoff can never recover; high-contamination
-    ## bins are dropped as requested by --max_cont
-    cand <- ranked[Completeness >= cutoff & Contamination <= max_cont]
+    ## bins are dropped as requested by --max_contamination
+    cand <- ranked[Completeness >= cutoff & Contamination <= max_contamination]
 
     take <- 0L
     if (nrow(cand)) {

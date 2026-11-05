@@ -80,3 +80,23 @@ test_that("markers that do not match the profile are reported", {
                                       profile = toy_markers())),
                "None of the markers")
 })
+
+test_that("--max_contamination filters bins, and --max_cont still works", {
+  g <- genome("g", 1:10)
+  extra <- genome("x", 1:2)
+  bins <- rbind(data.frame(bin = "a", contig = c(g$contig, extra$contig), set = "toolA"),
+                data.frame(bin = "b", contig = g$contig[1:8], set = "toolB"))
+  f <- toy_files(bins, rbind(g, extra))
+  run_cli <- function(...) {
+    out <- file.path(f$dir, paste0("cli", sample.int(1e6, 1)))
+    quietly(cli_main(c("-q", "-i", f$ctb, "--hmm", f$hmm, "-o", out, "--profile", toy_markers(),
+                       "--skip_merge_bins", ...)))
+    fread(paste0(out, ".refined.out"))$bin
+  }
+  expect_equal(run_cli(), "a")
+  expect_equal(run_cli("--max_contamination", "0.1"), "b")
+  expect_message(cli_main(c("-q", "-i", f$ctb, "--hmm", f$hmm, "-o", file.path(f$dir, "dep"),
+                            "--profile", toy_markers(), "--skip_merge_bins", "--max_cont", "0.1")),
+                 "deprecated")
+  expect_equal(fread(file.path(f$dir, "dep.refined.out"))$bin, "b")
+})

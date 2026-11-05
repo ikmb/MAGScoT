@@ -34,8 +34,12 @@ refine_options <- function() list(
     help = "Scoring weight b (contamination); overrides the preset"),
   optparse::make_option(c("-c", "--score_c"), type = "double",
     help = "Scoring weight c (surplus marker copies); overrides the preset"),
-  optparse::make_option("--max_cont", type = "double", default = 1,
-    help = "Maximum contamination; bins above this are not considered [default: %default]"),
+  optparse::make_option("--max_contamination", type = "double", default = 1,
+    help = paste("Maximum contamination of bins considered for refinement, as a fraction",
+                 "(0.1 = 10%) of the Contamination column: markers present in more than one",
+                 "copy / unique markers. Bins above it are discarded. 1 = no filter [default: %default]")),
+  optparse::make_option("--max_cont", type = "double", dest = "max_cont_deprecated",
+    help = "Deprecated alias of --max_contamination"),
   optparse::make_option(c("-t", "--threshold"), type = "double", default = 0.5,
     help = "Minimum score (and completeness) of refined bins [default: %default]"),
   optparse::make_option("--score_only", action = "store_true", default = FALSE,
@@ -131,6 +135,11 @@ cli_main <- function(args = commandArgs(trailingOnly = TRUE)) {
   status <- tryCatch({
     if (cmd == "refine") {
       require_args(opt, parser, "input")
+      max_contamination <- opt$max_contamination
+      if (!is.null(opt$max_cont_deprecated)) {
+        message("Note: --max_cont is deprecated; use --max_contamination.")
+        max_contamination <- opt$max_cont_deprecated
+      }
       require_one_of(opt, parser, c("hmm", "proteins"))
       magscot_refine(
         input = opt$input, hmm = opt$hmm, proteins = opt$proteins, threads = opt$threads,
@@ -138,7 +147,7 @@ cli_main <- function(args = commandArgs(trailingOnly = TRUE)) {
         bin_separator = opt$bin_separator,
         preset = opt$preset,
         score_a = opt$score_a, score_b = opt$score_b, score_c = opt$score_c,
-        threshold = opt$threshold, max_cont = opt$max_cont,
+        threshold = opt$threshold, max_contamination = max_contamination,
         score_only = opt$score_only, skip_merge_bins = opt$skip_merge_bins,
         min_markers = opt$min_markers, min_sharing = opt$min_sharing,
         n_iterations = opt$n_iterations, max_marker_hits = opt$max_marker_hits,

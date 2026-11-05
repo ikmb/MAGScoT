@@ -111,7 +111,7 @@ Main columns: `Completeness` (unique markers / markers in set), `Contamination` 
 
 1. **Scoring**: all bins are scored with the GTDB r207 marker genes.
 2. **Bin merging** (unless `--skip_merge_bins`): bins with at least `--min_markers` unique markers are used as seeds. If a bin from another binning tool contains at least `--min_sharing` of the seed's markers, the two are merged into a hybrid bin. In each further iteration (`-n`), the new hybrid bins are used as seeds again. Hybrid bins with a contig set identical to an existing bin are discarded.
-3. **Refinement**: the highest-scoring bin is selected, its contigs are removed from all other bins, the affected bins are re-scored, and this repeats until no bin reaches the score cutoff (`-t`). Bins below the completeness cutoff or above `--max_cont` are not considered.
+3. **Refinement**: the highest-scoring bin is selected, its contigs are removed from all other bins, the affected bins are re-scored, and this repeats until no bin reaches the score cutoff (`-t`). Bins below the completeness cutoff, or with a contamination above `--max_contamination`, are not considered.
 
 ## Options
 
@@ -130,7 +130,8 @@ Usage: MAGScoT.R [refine] [options]
 -a, --score_a         Scoring weight a (completeness); overrides the preset
 -b, --score_b         Scoring weight b (contamination); overrides the preset
 -c, --score_c         Scoring weight c (surplus marker copies); overrides the preset
---max_cont            Maximum contamination of considered bins [1]
+--max_contamination   Maximum contamination (fraction, 0.1 = 10%) of considered bins;
+                      1 = no filter [1]. Replaces --max_cont (still accepted)
 -t, --threshold       Minimum score (and completeness) of refined bins [0.5]
 --score_only          Only score the input bins
 --skip_merge_bins     Skip bin merging

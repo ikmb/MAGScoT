@@ -29,6 +29,9 @@ and produces the same output files and columns.
 * `--preset dastool|metawrap`: scoring weight presets. The default stays
   `dastool` (a = 1, b = 0.5, c = 0.5); `metawrap` weights contamination with
   b = 5. Explicit `-a`/`-b`/`-c` override the preset.
+* `--max_cont` (added in v1.1) is renamed to `--max_contamination`, and its
+  help explains that it is a fraction of the `Contamination` column. The old
+  name still works and prints a deprecation note.
 * `--profile` accepts a custom marker TSV; new option `--max_marker_hits`
   (previously fixed at 150) and `--quiet`.
 * Input checks with clear error messages: wrong number of columns, swapped
